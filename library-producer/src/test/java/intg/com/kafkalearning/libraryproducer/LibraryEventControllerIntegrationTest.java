@@ -2,7 +2,7 @@ package com.kafkalearning.libraryproducer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kafkalearning.libraryproducer.domain.LibraryEvent;
-import com.karkalearning.TestUtil;
+import com.kafkalearning.TestUtil;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
