@@ -1,5 +1,6 @@
 package com.kafkalearning.libraryproducer.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kafkalearning.TestUtil;
 import com.kafkalearning.libraryproducer.domain.LibraryEvent;
@@ -56,6 +57,36 @@ class LibraryEventControllerUnitTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().is4xxClientError())
                 .andExpect(content().string(expectedErrorMessage));
+
+    }
+
+    @Test
+    void updateKibraryEventWithNullLibraryEventId() throws Exception {
+
+        when(libraryEventsProducer.sendLibraryEvent(isA(LibraryEvent.class))).thenReturn(null);
+
+        var json = objectMapper.writeValueAsString(TestUtil.libraryEventRecordUpdateWithNullLibraryEventId());
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/v1/libraryevent")
+                .content(json)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().is4xxClientError())
+                .andExpect(content().string("Please pass the LibraryEventId"));
+    }
+
+    @Test
+    void updateLibraryEvent_withNullInvalidEventType() throws Exception {
+
+        when(libraryEventsProducer.sendLibraryEvent(isA(LibraryEvent.class))).thenReturn(null);
+
+        String json = objectMapper.writeValueAsString(TestUtil.newLibraryEventRecordWithLibraryEventId());
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/v1/libraryevent")
+                .content(json)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().is4xxClientError())
+                .andExpect(content().string("Only UPDATE event type is supported"));
+
 
     }
 }
