@@ -165,8 +165,8 @@ public class LibraryEventConsumerIntegrationTest {
         countDownLatch.await(3, TimeUnit.SECONDS);
 
         // then
-        verify(libraryEventsConsumer, times(6)).onMessage(isA(ConsumerRecord.class));
-        verify(libraryEventService, times(6)).processLibraryEvent(isA(ConsumerRecord.class));
+        verify(libraryEventsConsumer, times(3)).onMessage(isA(ConsumerRecord.class));
+        verify(libraryEventService, times(3)).processLibraryEvent(isA(ConsumerRecord.class));
 
 
     }
