@@ -185,6 +185,16 @@ public class LibraryEventConsumerIntegrationTest {
         verify(libraryEventsConsumer, times(1)).onMessage(isA(ConsumerRecord.class));
         verify(libraryEventService, times(1)).processLibraryEvent(isA(ConsumerRecord.class));
 
+        Map<String, Object> configs = new HashMap<>(KafkaTestUtils.consumerProps("group3", "true", embeddedKafkaBroker));
+        configs.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        consumer = new DefaultKafkaConsumerFactory<>(configs, new IntegerDeserializer(), new StringDeserializer()).createConsumer();
+        embeddedKafkaBroker.consumeFromAnEmbeddedTopic(consumer, deadLetterTopic);
+
+        ConsumerRecord<Integer, String> consumerRecord = KafkaTestUtils.getSingleRecord(consumer, deadLetterTopic);
+
+        System.out.println("Consumer record is : "+ consumerRecord);
+        assertEquals(jsonData, consumerRecord.value());
+
 
     }
 

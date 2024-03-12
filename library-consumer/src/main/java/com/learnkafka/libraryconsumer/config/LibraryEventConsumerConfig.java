@@ -66,7 +66,7 @@ public class LibraryEventConsumerConfig {
         var exceptionToIgnoreList = List.of(IllegalArgumentException.class);
 //        var exceptionToRetryList = List.of(RecoverableDataAccessException.class);
 
-        exceptionToIgnoreList.forEach(errorHandler::addNotRetryableExceptions);
+//        exceptionToIgnoreList.forEach(errorHandler::addNotRetryableExceptions);
 //        exceptionToRetryList.forEach(errorHandler::addRetryableExceptions);
         return errorHandler;
     }
