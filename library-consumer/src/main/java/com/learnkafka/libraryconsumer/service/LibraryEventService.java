@@ -27,7 +27,7 @@ public class LibraryEventService {
 
         log.info("LibraryEvent: {}", libraryEvent);
 
-        if(libraryEvent.getLibraryEventId()==null && libraryEvent.getBook().getBookId()==999){
+        if(libraryEvent.getLibraryEventId()!=null && libraryEvent.getLibraryEventId()==999){
             throw new RecoverableDataAccessException("Temporary network issue");
         }
 

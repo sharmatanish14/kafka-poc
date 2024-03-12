@@ -192,7 +192,7 @@ public class LibraryEventConsumerIntegrationTest {
     void publishUpdatedLibraryEventWithInvalidLibraryEventIdAndBookId999() throws JsonProcessingException, ExecutionException, InterruptedException {
         // given
         String jsonData = "{\n" +
-                "    \"libraryEventId\": null,\n" +
+                "    \"libraryEventId\": 999,\n" +
                 "    \"libraryEventType\": \"UPDATE\",\n" +
                 "    \"book\": {\n" +
                 "        \"bookId\": 999,\n" +
