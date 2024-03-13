@@ -4,14 +4,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.learnkafka.libraryconsumer.consumer.LibraryEventsConsumer;
 import com.learnkafka.libraryconsumer.entity.Book;
+import com.learnkafka.libraryconsumer.entity.FailureRecord;
 import com.learnkafka.libraryconsumer.entity.LibraryEvent;
 import com.learnkafka.libraryconsumer.entity.LibraryEventType;
+import com.learnkafka.libraryconsumer.jpa.FailureRecordRepository;
 import com.learnkafka.libraryconsumer.jpa.LibraryEventRepository;
 import com.learnkafka.libraryconsumer.service.LibraryEventService;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterEach;
@@ -69,6 +70,9 @@ public class LibraryEventConsumerIntegrationTest {
 
     @Autowired
     ObjectMapper objectMapper;
+
+    @Autowired
+    FailureRecordRepository failureRecordRepository;
 
     private Consumer<Integer, String> consumer;
 
@@ -192,7 +196,7 @@ public class LibraryEventConsumerIntegrationTest {
 
         ConsumerRecord<Integer, String> consumerRecord = KafkaTestUtils.getSingleRecord(consumer, deadLetterTopic);
 
-        System.out.println("Consumer record is : "+ consumerRecord);
+        System.out.println("Consumer record is : " + consumerRecord);
         assertEquals(jsonData, consumerRecord.value());
 
 
@@ -228,9 +232,37 @@ public class LibraryEventConsumerIntegrationTest {
 
         ConsumerRecord<Integer, String> consumerRecord = KafkaTestUtils.getSingleRecord(consumer, retryTopic);
 
-        System.out.println("Consumer record is : "+ consumerRecord);
+        System.out.println("Consumer record is : " + consumerRecord);
         assertEquals(jsonData, consumerRecord.value());
 
     }
 
+    @Test
+    void publishUpdatedLibraryEventWithInvalidLibraryEventIdFailureRecord() throws JsonProcessingException, ExecutionException, InterruptedException {
+        // given
+        String jsonData = "{\n" +
+                "    \"libraryEventId\": null,\n" +
+                "    \"libraryEventType\": \"UPDATE\",\n" +
+                "    \"book\": {\n" +
+                "        \"bookId\": 456,\n" +
+                "        \"bookName\": \"Kafka Using Spring Boot 3.0\",\n" +
+                "        \"bookAuthor\": \"Tanish book\"\n" +
+                "    }\n" +
+                "}";
+
+        kafkaTemplate.sendDefault(jsonData).get();
+
+        // when
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        countDownLatch.await(3, TimeUnit.SECONDS);
+
+        // then
+        verify(libraryEventsConsumer, times(3)).onMessage(isA(ConsumerRecord.class));
+        verify(libraryEventService, times(3)).processLibraryEvent(isA(ConsumerRecord.class));
+
+        var count = failureRecordRepository.count();
+        assertEquals(1, count);
+
+        failureRecordRepository.findAll().forEach(System.out::println);
+    }
 }

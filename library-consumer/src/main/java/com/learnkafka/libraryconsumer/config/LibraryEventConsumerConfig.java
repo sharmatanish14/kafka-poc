@@ -1,6 +1,8 @@
 package com.learnkafka.libraryconsumer.config;
 
+import com.learnkafka.libraryconsumer.service.FailureService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,7 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
+import org.springframework.kafka.listener.ConsumerRecordRecoverer;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
@@ -28,6 +31,9 @@ import java.util.List;
 @EnableKafka
 @Slf4j
 public class LibraryEventConsumerConfig {
+
+    private static final String RETRY = "RETRY";
+    private static final String DEAD = "DEAD";
 
     @Autowired
     KafkaProperties properties;
@@ -40,6 +46,9 @@ public class LibraryEventConsumerConfig {
 
     @Value("${topics.dlt}")
     private String deadLetterTopic;
+
+    @Autowired
+    private FailureService failureService;
 
     @Bean
     ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory(
@@ -58,7 +67,7 @@ public class LibraryEventConsumerConfig {
 
     public DefaultErrorHandler errorHandler() {
         var fixedBackOff = new FixedBackOff(1000L, 2);
-        var errorHandler = new DefaultErrorHandler(publishingRecoverer(),fixedBackOff);
+        var errorHandler = new DefaultErrorHandler(/*publishingRecoverer()*/  consumerRecordRecoverer, fixedBackOff);
         errorHandler.setRetryListeners((record, ex, deliveryAttempt) -> {
             log.info("Failed record in Retry listener, Exception :{} , delivery attempt {} ", ex.getMessage(), deliveryAttempt);
         });
@@ -82,4 +91,19 @@ public class LibraryEventConsumerConfig {
 
         return recoverer;
     }
+
+    ConsumerRecordRecoverer consumerRecordRecoverer = (consumerRecord, e) -> {
+
+        log.error("Exception in consumerRecordRecoverer :{}", e.getMessage(),e);
+        if (e.getCause() instanceof RecoverableDataAccessException) {
+            // recovery logic
+            log.info("Inside recovery");
+            failureService.saveFailedRecord((ConsumerRecord<Integer, String>) consumerRecord, e, RETRY);
+        } else {
+            // non-recovery logic
+            log.info("Inside non-recovery");
+            failureService.saveFailedRecord((ConsumerRecord<Integer, String>) consumerRecord, e, DEAD);
+        }
+    };
+
 }
